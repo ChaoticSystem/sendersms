@@ -1,0 +1,238 @@
+	<html>
+	<head>
+		<title>Panel</title>
+		<style>
+			.itemPort {
+				height: 32px;
+				line-height: 32px;
+				border: 1px solid red;
+				border-radius: 4px;
+				padding: 0 0 0 6px;
+				box-sizing: border-box;
+				margin: 2px auto;
+				background-color: #d74343;
+			}
+			.itemPort > table {
+				width: 100%;
+				border-collapse: collapse;
+				box-sizing: border-box;
+			}
+			.itemPort > table td:nth-child(1) {
+				width: 58px;
+			}
+			.itemPort > table td:nth-child(3) {
+				text-align: right;
+				width: 72px;
+			}
+			.btnSet {
+				transition: all 0.3s;
+				height: 32px;
+				width: 74px;
+				box-sizing: border-box;
+				display: block;
+				margin: -2px -2px 0 0;
+				border-radius: 3px;
+				border: 0 none;
+				cursor: pointer;
+				background-color: #2196f3;
+				color: white;
+			}
+			.btnSet:hover {
+				background-color: #43acff;
+			}
+			#blackModal, #modalForm {
+				opacity: 0;
+				transition: all 0.150s;
+				display: none;
+			}
+			#blackModal {
+				position: fixed;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background-color: rgba(0,0,0, 0.5);
+			}
+			#modalForm {
+				position: absolute;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%);
+				padding: 8px 4px;
+				width: 320px;
+				min-height: 64px;
+				border: 0 none;
+				border-radius: 6px;
+				box-shadow: 0 0 12px blak;
+				background-color: white;
+			}
+			#modalClose {
+				position: absolute;
+				top: 2px;
+				right: 2px;
+				width: 22px;
+				height: 22px;
+				font-weight: bold;
+				cursor: pointer;
+				color: white;
+				border: 0 none;
+				border-radius: 2px;
+				background-color: darkred;
+			}
+			#currentPhone {
+				position: absolute;
+				top: 2px;
+				right: 32px;
+				width: 192px;
+				height: 22px;
+				font-weight: bold;
+				/*border: 0 none;
+				border-radius: 2px;
+				background-color: darkred;*/
+			}
+			#currentSMS {
+				resize: none;
+				width: 100%;
+				height: 64px;
+				overflow-y: scroll;
+			}
+		</style>
+	</head>
+	<body>
+		<div>
+			<h1>Hola! 435345435</h1>
+			<div>
+				<button id="btnLoad">Load Ports</button>
+			</div>
+			<hr>
+			<div id="allPorts"></div>
+		</div>
+		<div id="blackModal">
+			<form id="modalForm" method="post">
+				<div>Port: <b id="spanPort">CON0</b></div>
+				<button id="modalClose" type="button">x</button>
+				<input id="currentPort" type="hidden" name="path" value="">
+				<input id="currentPhone" type="text" name="phone" value="3178481332">
+				<textarea id="currentSMS" name="sms"></textarea>
+				<div style="text-align: right;">
+					<button id="btnSend" type="button">Send</button>
+				</div>
+			</form>
+		</div>
+		<script>
+			document.querySelector('#btnSend').onclick = function(e){
+				var form = document.querySelector('#modalForm');
+				fetch('/send_sms', {
+					method: 'POST',
+					headers: {
+						'content-type': 'application/json',
+					},
+					body: JSON.stringify(Object.fromEntries(new FormData(form))),
+				}).then(async function(response){
+					var text = null;
+					var json = null;
+					try{
+						text = await response.text();
+						json = JSON.parse(text);
+					}catch(ex){}
+					console.log('json:', json);
+					if(json != null){
+						if(json.status != null){
+							try{
+								var ms = 'Mensaje no enviado.';
+								if(json.status.status == 'success'){
+									ms = 'Enviado correctamente.';
+								}
+								//alert(ms);
+							}catch(ex){}
+						}
+					}
+				});
+				e.preventDefault();
+				e.stopPropagation();
+				return false;
+			};
+			[].slice.call(document.querySelectorAll('#blackModal, #modalClose')).map(element => {
+				element.onclick = function(e){
+					if(e.target.isSameNode(element)){
+					//console.log(element);
+						var black = document.querySelector('#blackModal');
+						var form = document.querySelector('#modalForm');
+						form.style.opacity = '0';
+						setTimeout(function(){
+							form.style.display = 'none';
+							black.style.opacity = '0';
+							setTimeout(function(){
+								black.style.display = 'none';
+							}, 150);
+						}, 150);
+					}
+					e.preventDefault();
+					e.stopPropagation();
+					return false;
+				};
+			});
+			
+			function createForm(obj){
+				var black = document.querySelector('#blackModal');
+				var form = document.querySelector('#modalForm');
+				form.querySelector('#spanPort').innerText = obj.path;
+				form.querySelector('#currentPort').value = obj.path;
+				//form.querySelector('#currentSMS').value = 'Default SMS.';
+				black.style.opacity = '0';
+				black.style.display = 'block';
+				black.style.opacity = '1';
+				setTimeout(function(){
+					form.style.opacity = '0';
+					form.style.display = 'block';
+					form.style.opacity = '1';
+					setTimeout(function(){
+						
+					}, 150);
+				}, 150);
+				
+			};
+			
+			function createItem(obj){
+				var div = document.createElement('div');
+				div.className = 'itemPort';
+				div.innerHTML = [
+					'<table>',
+						'<tr>',
+							'<td><b>'+obj.path+'</b></td>',
+							'<td>'+obj.manufacturer+'</td>',
+							'<td><button class="btnSet">Set Port</button></td>',
+						'</tr>',
+					'</table>',
+				].join('');
+				var btn = div.querySelector('.btnSet');
+				btn.onclick = function(){
+					//alert(obj.path);
+					createForm(obj)
+				};
+				return div;
+			};
+			
+			var btnLoad = document.querySelector('#btnLoad');
+			
+			btnLoad.onclick = function(){
+				btnLoad.disabled = true;
+				fetch('/get_ports').then(async function(response){
+					var text = null;
+					var list = [];
+					try{
+						text = await response.text();
+						list = JSON.parse(text);
+					}catch(ex){}
+					console.log('list:', list);
+					[].slice.call(document.querySelectorAll('#allPorts > *')).map(e => allPorts.removeChild(e));
+					list.map(function(obj){
+						var div = createItem(obj);
+						allPorts.appendChild(div);
+					});
+					btnLoad.disabled = false;
+				});
+			};
+		</script>
+	</body>
+	</html>
